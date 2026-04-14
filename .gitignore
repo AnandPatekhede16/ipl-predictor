@@ -1,0 +1,5 @@
+data/IPL.csv
+model/ipl_model.pkl
+venv/
+.venv/
+__pycache__/
