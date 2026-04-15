@@ -102,9 +102,10 @@ button:hover {
 
 <!-- ✅ NEW: LOGOS SECTION -->
 <div class="team-logos">
-    <img id="batLogo" src="assets/mi.png">
-    <img id="bowlLogo" src="assets/csk.png">
+    <img id="batLogo">
+    <img id="bowlLogo">
 </div>
+
 
 <form id="form">
 
@@ -195,32 +196,38 @@ button:hover {
 
 <script>
 
-/* ✅ NEW: LOGO MAPPING */
+/* ✅ UPDATED: LOGO PATHS (important for Flask static folder) */
 const logos = {
-    "Mumbai Indians": "assets/mi.png",
-    "Chennai Super Kings": "assets/csk.png",
-    "Royal Challengers Bangalore": "assets/rcb.png",
-    "Kolkata Knight Riders": "assets/kkr.png",
-    "Delhi Capitals": "assets/dc.png",
-    "Sunrisers Hyderabad": "assets/srh.png",
-    "Punjab Kings": "assets/pbks.png",
-    "Rajasthan Royals": "assets/rr.png",
-    "Lucknow Super Giants": "assets/lsg.png",
-    "Gujarat Titans": "assets/gt.png"
+    "Mumbai Indians": "/static/assets/mi.png",
+    "Chennai Super Kings": "/static/assets/csk.png",
+    "Royal Challengers Bangalore": "/static/assets/rcb.png",
+    "Kolkata Knight Riders": "/static/assets/kkr.png",
+    "Delhi Capitals": "/static/assets/dc.png",
+    "Sunrisers Hyderabad": "/static/assets/srh.png",
+    "Punjab Kings": "/static/assets/pbks.png",
+    "Rajasthan Royals": "/static/assets/rr.png",
+    "Lucknow Super Giants": "/static/assets/lsg.png",
+    "Gujarat Titans": "/static/assets/gt.png"
 };
 
-/* ✅ NEW: UPDATE LOGOS */
+/* ✅ SAFE LOGO UPDATE */
 function updateLogos() {
     const bat = document.getElementById("batting_team").value;
     const bowl = document.getElementById("bowling_team").value;
 
-    document.getElementById("batLogo").src = logos[bat];
-    document.getElementById("bowlLogo").src = logos[bowl];
+    if (logos[bat]) {
+        document.getElementById("batLogo").src = logos[bat];
+    }
+
+    if (logos[bowl]) {
+        document.getElementById("bowlLogo").src = logos[bowl];
+    }
 }
 
 /* ✅ INITIAL LOAD */
-updateLogos();
+window.onload = updateLogos;
 
+/* ✅ FORM SUBMIT (IMPROVED) */
 document.getElementById("form").onsubmit = async function(e) {
     e.preventDefault();
 
@@ -236,19 +243,30 @@ document.getElementById("form").onsubmit = async function(e) {
         toss_decision: document.getElementById("toss_decision").value
     };
 
-    const response = await fetch("http://127.0.0.1:5000/predict", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(data)
-    });
+    try {
+        const response = await fetch("/predict", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(data)
+        });
 
-    const result = await response.json();
+        const result = await response.json();
 
-    document.getElementById("loading").style.display = "none";
+        document.getElementById("loading").style.display = "none";
 
-    document.getElementById("result").innerText =
-        "🏆 " + result.prediction + " (" + result.confidence + "% confidence)";
+        if (result.error) {
+            document.getElementById("result").innerText = "❌ " + result.error;
+        } else {
+            document.getElementById("result").innerText =
+                "🏆 " + result.prediction + " (" + result.confidence + "% confidence)";
+        }
+
+    } catch (error) {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("result").innerText = "❌ Server not responding";
+    }
 };
+
 </script>
 
 </body>
