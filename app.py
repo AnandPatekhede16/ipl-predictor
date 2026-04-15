@@ -4,9 +4,34 @@ import joblib
 import numpy as np
 import json
 import os
+import gdown
 
 app = Flask(__name__)
 CORS(app)
+
+# -------------------------------
+# Google Drive file URLs
+# -------------------------------
+MODEL_URL = "https://drive.google.com/uc?id=1rN8za-D_gfZ4GIu6hJe4Q91zkWC9PoKN"
+ENCODER_URL = "https://drive.google.com/uc?id=1yOZ_P6KPzycxUfvcsJWDmOpm1CUv1R_C"
+JSON_URL = "https://drive.google.com/uc?id=1qDXpqt1qltKF2dIwmDxgMxLMiajxi1GK"
+
+# -------------------------------
+# Ensure model folder exists
+# -------------------------------
+os.makedirs("model", exist_ok=True)
+
+# -------------------------------
+# Download files if not present
+# -------------------------------
+def download_file(url, output):
+    if not os.path.exists(output):
+        print(f"⬇️ Downloading {output}...")
+        gdown.download(url, output, quiet=False)
+
+download_file(MODEL_URL, "model/ipl_model.pkl")
+download_file(ENCODER_URL, "model/encoders.pkl")
+download_file(JSON_URL, "model/team_mapping.json")
 
 # -------------------------------
 # Load model and encoders safely
@@ -34,7 +59,7 @@ def home():
     return "🏏 IPL Prediction API is running!"
 
 # -------------------------------
-# Health check (for deployment)
+# Health check
 # -------------------------------
 @app.route('/health')
 def health():
@@ -51,7 +76,6 @@ def predict():
 
         data = request.json
 
-        # Encode inputs safely
         batting_team = encoders['batting_team'].transform([data['batting_team']])[0]
         bowling_team = encoders['bowling_team'].transform([data['bowling_team']])[0]
         venue = encoders['venue'].transform([data['venue']])[0]
@@ -61,7 +85,6 @@ def predict():
 
         features = np.array([[batting_team, bowling_team, venue, city, toss_winner, toss_decision]])
 
-        # Prediction
         probs = model.predict_proba(features)
         confidence = float(max(probs[0]) * 100)
 
@@ -74,19 +97,4 @@ def predict():
         })
 
     except Exception as e:
-        return jsonify({
-            "error": str(e)
-        }), 400
-
-# -------------------------------
-# For Gunicorn (IMPORTANT)
-# -------------------------------
-# This line is REQUIRED for Render
-application = app
-
-# -------------------------------
-# Run app (for local only)
-# -------------------------------
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+        return jsonify({"error": str(e)}), 400
